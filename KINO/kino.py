@@ -1,10 +1,8 @@
 import asyncio
 import json
-import os
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
-from aiogram import F
 
 TOKEN = "7991412037:AAE3lXzplwNiGoIjnPXyeop3LUoQWCyVBuk"
 ADMIN_ID = 907402803
@@ -15,6 +13,7 @@ CONFIG_FILE = "config.json"
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot=bot)
 
+# Fayl o‘qish/yozish funksiyalari
 def load_config():
     try:
         with open(CONFIG_FILE, "r", encoding="utf-8") as file:
@@ -25,10 +24,6 @@ def load_config():
 def save_config(config):
     with open(CONFIG_FILE, "w", encoding="utf-8") as file:
         json.dump(config, file, ensure_ascii=False, indent=4)
-
-config = load_config()
-CHANNEL_USERNAME = config.get("channel_username")
-adding_channel_id = {}
 
 def load_movies():
     try:
@@ -52,11 +47,18 @@ def save_users():
     with open(USER_FILE, "w", encoding="utf-8") as file:
         json.dump(users, file, ensure_ascii=False, indent=4)
 
+# Global o‘zgaruvchilar
+config = load_config()
+CHANNEL_USERNAME = config.get("channel_username")
+adding_channel_id = {}
+adding_movie_code = {}
+sending_broadcast_message = {}
 movies = load_movies()
 users = load_users()
-adding_movie_code = {}
 
+# Menular
 main_menu = ReplyKeyboardMarkup(keyboard=[], resize_keyboard=True)
+
 admin_menu = ReplyKeyboardMarkup(keyboard=[
     [KeyboardButton(text="🔑 Admin Panel")],
     [KeyboardButton(text="📊 Foydalanuvchilar")],
@@ -73,8 +75,7 @@ admin_panel_menu = ReplyKeyboardMarkup(keyboard=[
     [KeyboardButton(text="⬅️ Asosiy menyu")]
 ], resize_keyboard=True)
 
-sending_broadcast_message = {}
-
+# /start komandasi
 @dp.message(Command("start"))
 async def start(message: Message):
     user_id = message.from_user.id
@@ -101,6 +102,7 @@ async def start(message: Message):
         else:
             await message.answer("🎬 Salom! Kino kodini kiriting", reply_markup=main_menu)
 
+# Admin panel
 @dp.message(lambda m: m.text == "🔑 Admin Panel")
 async def admin_panel(message: Message):
     if message.from_user.id == ADMIN_ID:
@@ -108,6 +110,7 @@ async def admin_panel(message: Message):
     else:
         await message.answer("❌ Siz admin emassiz!")
 
+# Kino qo‘shish bosqichlari
 @dp.message(lambda m: m.text == "➕ Yangi kino qo‘shish")
 async def add_movie_step1(message: Message):
     if message.from_user.id == ADMIN_ID:
@@ -131,6 +134,7 @@ async def add_movie_step3(message: Message):
     save_movies()
     await message.answer(f"✅ Kino '{message.text}' kodi '{data['code']}' bilan qo‘shildi!")
 
+# Video yuklash bosqichlari
 @dp.message(lambda m: m.text == "📤 Video yuklash")
 async def upload_video_step1(message: Message):
     if message.from_user.id == ADMIN_ID:
@@ -154,6 +158,7 @@ async def receive_video(message: Message):
     save_movies()
     await message.answer("✅ Video saqlandi!")
 
+# Kino yuborish
 @dp.message(lambda m: m.text in movies)
 async def send_movie(message: Message):
     code = message.text
@@ -169,15 +174,18 @@ async def send_movie(message: Message):
         keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Kanalga qo‘shilish", url=invite_link)]])
         await message.answer("⚠️ Kanalga obuna bo‘ling!", reply_markup=keyboard)
 
+# Menuga qaytish
 @dp.message(lambda m: m.text == "⬅️ Asosiy menyu")
 async def back_to_main(message: Message):
     await message.answer("🔙 Asosiy menyu", reply_markup=admin_menu if message.from_user.id == ADMIN_ID else main_menu)
 
+# Foydalanuvchilar soni
 @dp.message(lambda m: m.text == "📊 Foydalanuvchilar")
 async def list_users(message: Message):
     if message.from_user.id == ADMIN_ID:
         await message.answer(f"👥 Bot foydalanuvchilari soni: {len(users)}")
 
+# Kanal sozlash
 @dp.message(lambda m: m.text == "⚙️ Kanal sozlash")
 async def set_channel_step1(message: Message):
     if message.from_user.id == ADMIN_ID:
@@ -196,6 +204,7 @@ async def set_channel_step2(message: Message):
     await message.answer(f"✅ Kanal saqlandi: {username}")
     del adding_channel_id[message.from_user.id]
 
+# Xabar yuborish
 @dp.message(lambda m: m.text == "📢 Xabar yuborish")
 async def broadcast_message_step1(message: Message):
     if message.from_user.id == ADMIN_ID:
@@ -218,10 +227,14 @@ async def broadcast_message_step2(message: Message):
             failed_count += 1
             print(f"Xabar yuborishda xatolik (Foydalanuvchi ID: {user_id}): {e}")
 
-    await message.answer(f"✅ Xabar {sent_count} ta foydalanuvchiga yuborildi.\n\n❌ {failed_count} ta foydalanuvchiga yuborilmadi (ehtimol botni bloklagan).")
+    await message.answer(f"✅ Xabar {sent_count} ta foydalanuvchiga yuborildi.\n❌ {failed_count} ta foydalanuvchiga yuborilmadi.")
     del sending_broadcast_message[admin_id]
 
-@dp.message(lambda m: m.text and m.text not in movies and m.text not in ["🔑 Admin Panel", "📊 Foydalanuvchilar", "⚙️ Kanal sozlash", "⬅️ Asosiy menyu", "➕ Yangi kino qo‘shish", "📤 Video yuklash", "📢 Xabar yuborish"] and not m.text.startswith("/"))
+# Noto‘g‘ri kino kodi
+@dp.message(lambda m: m.text and m.text not in movies and m.text not in [
+    "🔑 Admin Panel", "📊 Foydalanuvchilar", "⚙️ Kanal sozlash", "⬅️ Asosiy menyu",
+    "➕ Yangi kino qo‘shish", "📤 Video yuklash", "📢 Xabar yuborish"
+] and not m.text.startswith("/"))
 async def movie_not_found(message: Message):
     user_id = message.from_user.id
     if user_id == ADMIN_ID or (CHANNEL_USERNAME and (await bot.get_chat_member(CHANNEL_USERNAME, user_id)).status in ["member", "administrator", "creator"]) or not CHANNEL_USERNAME:
@@ -231,6 +244,7 @@ async def movie_not_found(message: Message):
         keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Kanalga qo‘shilish", url=invite_link)]])
         await message.answer("⚠️ Kanalga obuna bo‘ling!", reply_markup=keyboard)
 
+# Botni ishga tushirish
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
