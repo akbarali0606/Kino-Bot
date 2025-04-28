@@ -4,7 +4,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
 
-TOKEN = "7991412037:AAFmLrWzJL2secGqXH_cRrsDQ2ikikyYoPk"
+TOKEN = "7991412037:AAG826HYnMxYtE-OiloXhr3OBWlCrC4KG_s"
 ADMIN_ID = 907402803
 MOVIE_FILE = "movies.json"
 USER_FILE = "users.json"
